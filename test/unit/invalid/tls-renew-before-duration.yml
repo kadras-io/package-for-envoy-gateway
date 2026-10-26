@@ -1,0 +1,6 @@
+# expected: `tls.internal.renew_before` to be shorter than `tls.internal.duration`
+---
+tls:
+  internal:
+    duration: 100h
+    renew_before: 200h

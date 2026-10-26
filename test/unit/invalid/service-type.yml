@@ -1,0 +1,5 @@
+# expected: one of ["LoadBalancer", "NodePort", "ClusterIP"]
+---
+envoy:
+  service:
+    type: ExternalName

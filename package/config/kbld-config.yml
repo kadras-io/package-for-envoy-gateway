@@ -1,0 +1,19 @@
+---
+apiVersion: kbld.k14s.io/v1alpha1
+kind: Config
+
+#! Search rules specify custom strategies for kbld to identify references for container images.
+#! By default, kbld finds the images in the `image` keys of the resources, like the Envoy image in the
+#! EnvoyProxy resources. The images of the shutdown manager and the rate limit service are set in the
+#! Envoy Gateway configuration, embedded as a string in a ConfigMap, so kbld must parse it to find them.
+#! Resolving all the images lets kbld relocate them with the package, for private registries and air-gapped scenarios.
+#! See more about the search rules: https://carvel.dev/kbld/docs/latest/config/#search-rules.
+searchRules:
+
+  - keyMatcher:
+      name: envoy-gateway.yaml
+    updateStrategy:
+      yaml:
+        searchRules:
+          - keyMatcher:
+              name: image

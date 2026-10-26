@@ -1,0 +1,4 @@
+# expected: must be: a value >= 1
+---
+controller:
+  replicas: 0

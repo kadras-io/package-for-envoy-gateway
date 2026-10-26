@@ -1,0 +1,15 @@
+---
+# The package is deleted with kapp, as kapp-controller does when deleting the PackageInstall:
+# `kctrl dev --delete` doesn't delete the resources of a local installation.
+# The Gateways are deleted first, waiting for Envoy Gateway to remove their Envoy proxies. Otherwise,
+# the namespace controller waits for the termination grace period of the proxies (at least 5 minutes)
+# before checking again whether the namespace is empty.
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: kapp delete -a hello -n tests -y
+  - timeout: 120
+    script: |
+      kubectl delete gateways --all -n envoy-gateway-system --wait
+      kubectl wait --for=delete pods -l app.kubernetes.io/component=proxy -n envoy-gateway-system --timeout=110s
+  - script: kapp delete -a envoy-gateway.app -n tests -y

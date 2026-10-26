@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: envoy-gateway-values
+  namespace: tests
+stringData:
+  values.yaml: |
+    gateways:
+      external:
+        domain: 127.0.0.1.sslip.io
+        tls:
+          issuer: kadras-ca-issuer
+          hostnames:
+            - "*.tests.127.0.0.1.sslip.io"
+    envoy:
+      service:
+        type: ClusterIP
+    tls:
+      internal:
+        provider: cert-manager

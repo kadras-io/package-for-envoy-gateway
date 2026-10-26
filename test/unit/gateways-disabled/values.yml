@@ -1,0 +1,6 @@
+---
+gateways:
+  external:
+    enabled: false
+  internal:
+    enabled: false

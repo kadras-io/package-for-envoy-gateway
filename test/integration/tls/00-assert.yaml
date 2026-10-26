@@ -1,0 +1,18 @@
+# Envoy Gateway, with the internal certificates issued by cert-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+status:
+  readyReplicas: 1
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: kubectl wait --for=condition=Ready certificate --all -n envoy-gateway-system --timeout=120s
+  - script: kubectl wait --for=condition=Programmed gateway/external gateway/internal -n envoy-gateway-system --timeout=120s
+  # The CA of the webhook is injected by cert-manager.
+  - script: |
+      [ -n "$(kubectl get mutatingwebhookconfiguration envoy-gateway-topology-injector.envoy-gateway-system -o jsonpath='{.webhooks[0].clientConfig.caBundle}')" ]

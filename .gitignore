@@ -1,6 +1,13 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
+### Carvel ###
+carvel-artifacts/
+repo/
+schema-openapi.yml
+
+### KUTTL ###
+test/integration/kubeconfig
+test/integration/kuttl-artifacts
+kubeconfig
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -11,23 +18,55 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Code coverage profiles and other test artifacts
+# Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-coverage.*
-!coverage.go
-*.coverprofile
-profile.cov
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Go workspace file
-go.work
-go.work.sum
+### VS Code ###
+.vscode/
 
-# env file
-.env
+#############
+### macOS ###
+#############
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# General
+.DS_Store
+*.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml

@@ -1,0 +1,5 @@
+# expected: must be: a valid DNS label
+---
+gateways:
+  internal:
+    name: Internal_Gateway

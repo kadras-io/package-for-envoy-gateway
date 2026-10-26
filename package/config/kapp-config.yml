@@ -1,0 +1,37 @@
+---
+apiVersion: kapp.k14s.io/v1alpha1
+kind: Config
+
+minimumRequiredVersion: 0.50.0
+
+#! Wait rules specify how to wait for resources that kapp does not wait for by default.
+#! See more about the wait rules: https://carvel.dev/kapp/docs/latest/config/#waitrules.
+waitRules:
+
+- supportsObservedGeneration: false
+  conditionMatchers:
+  - type: Ready
+    status: "True"
+    success: true
+  resourceMatchers:
+  - apiVersionKindMatcher: {apiVersion: cert-manager.io/v1, kind: Certificate}
+  - apiVersionKindMatcher: {apiVersion: cert-manager.io/v1, kind: Issuer}
+
+#! Rebase rules specify how to merge the resources in the cluster with the ones being applied.
+#! See more: https://carvel.dev/kapp/docs/latest/config/#rebaserules
+rebaseRules:
+
+#! The CA of the topology injector webhook is patched at runtime, by the certgen Job or by cert-manager.
+- path: [webhooks, {allIndexes: true}, clientConfig, caBundle]
+  type: copy
+  sources: [new, existing]
+  resourceMatchers:
+  - apiVersionKindMatcher: {apiVersion: admissionregistration.k8s.io/v1, kind: MutatingWebhookConfiguration}
+
+#! Some CRDs are too big for kapp to store the last applied configuration in an annotation, so kapp compares
+#! them with the cluster state, where the API server sets a default conversion strategy. Keep it.
+- path: [spec, conversion, strategy]
+  type: copy
+  sources: [new, existing]
+  resourceMatchers:
+  - apiVersionKindMatcher: {apiVersion: apiextensions.k8s.io/v1, kind: CustomResourceDefinition}

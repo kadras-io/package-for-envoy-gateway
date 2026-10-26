@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: envoy-gateway-values
+  namespace: tests
+stringData:
+  values.yaml: |
+    envoy:
+      service:
+        type: ClusterIP

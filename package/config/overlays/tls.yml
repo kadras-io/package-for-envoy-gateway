@@ -1,0 +1,136 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+
+#! The certificates securing the xDS connections between Envoy Gateway and the Envoy proxies (mutual TLS),
+#! and the Envoy Gateway webhook. They're stored in the `envoy-gateway`, `envoy`, and `envoy-rate-limit` Secrets.
+#! See: https://gateway.envoyproxy.io/docs/install/custom-cert
+
+#@ internal = data.values.tls.internal
+#@ namespace = data.values.namespace
+
+#! Envoy Gateway mounts the `envoy-gateway` Secret at startup, so it starts once the certificates are available.
+#@ certificates_change_group = "envoy-gateway.packages.kadras.io/certificates"
+
+#@ certgen_job = overlay.subset({"kind":"Job", "metadata":{"name":"eg-gateway-helm-certgen"}})
+
+#@ def is_certgen_resource(index, left, right):
+#@   if "metadata" not in left:
+#@     return False
+#@   end
+#@   name = left["metadata"]["name"]
+#@   kind = left["kind"]
+#@   if kind in ["ServiceAccount", "Role", "RoleBinding", "Job"]:
+#@     return name == "eg-gateway-helm-certgen"
+#@   end
+#@   return kind in ["ClusterRole", "ClusterRoleBinding"] and name.startswith("eg-gateway-helm-certgen")
+#@ end
+
+#@overlay/match by=overlay.subset({"kind":"Deployment", "metadata":{"name":"envoy-gateway"}})
+---
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-rule.certificates: #@ "upsert after upserting " + certificates_change_group
+
+#@ if internal.provider == "cert-manager":
+
+#@overlay/match by=is_certgen_resource, expects=6
+#@overlay/remove
+---
+
+#! The CA injected into the webhook configuration by cert-manager, instead of the certgen Job.
+#@overlay/match by=overlay.subset({"kind":"MutatingWebhookConfiguration"})
+---
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/match missing_ok=True
+    cert-manager.io/inject-ca-from: #@ namespace + "/envoy-gateway"
+
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: envoy-gateway-bootstrap-issuer
+  namespace: #@ namespace
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: envoy-gateway-ca
+  namespace: #@ namespace
+spec:
+  isCA: true
+  commonName: Envoy Gateway CA
+  secretName: envoy-gateway-ca
+  duration: #@ internal.duration
+  renewBefore: #@ internal.renew_before
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: envoy-gateway-bootstrap-issuer
+    kind: Issuer
+    group: cert-manager.io
+
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: envoy-gateway-ca-issuer
+  namespace: #@ namespace
+spec:
+  ca:
+    secretName: envoy-gateway-ca
+
+#! Envoy Gateway serves xDS and the webhook. The Envoy proxies and the rate limit service are its clients.
+#@ certificates = [
+#@   ("envoy-gateway", "envoy-gateway", ["envoy-gateway", "envoy-gateway." + namespace, "envoy-gateway." + namespace + ".svc", "envoy-gateway." + namespace + ".svc.cluster.local"]),
+#@   ("envoy", "*", ["*." + namespace]),
+#@   ("envoy-rate-limit", "*", ["*." + namespace]),
+#@ ]
+#@ for name, common_name, dns_names in certificates:
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: #@ name
+  namespace: #@ namespace
+  annotations:
+    kapp.k14s.io/change-group: #@ certificates_change_group
+spec:
+  secretName: #@ name
+  commonName: #@ common_name
+  dnsNames: #@ dns_names
+  duration: #@ internal.duration
+  renewBefore: #@ internal.renew_before
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: envoy-gateway-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+#@ end
+
+#@ else:
+
+#! The certgen Job creates the Secrets that don't exist yet, and patches the CA into the webhook configuration.
+#! It runs again when its specification changes, for example at upgrades.
+#@overlay/match by=certgen_job
+---
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/remove
+    helm.sh/hook:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/update-strategy: fallback-on-replace
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-group: #@ certificates_change_group
+
+#@ end

@@ -1,0 +1,7 @@
+# expected: must be: unique hostnames
+---
+gateways:
+  external:
+    tls:
+      issuer: kadras-ca-issuer
+      hostnames: ["*.a.kadras.io", "*.a.kadras.io"]

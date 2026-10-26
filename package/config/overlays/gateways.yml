@@ -1,0 +1,207 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:struct", "struct")
+#@ load("/lib/envoy_gateway.star", "envoy_proxy_spec", "external_http_redirect", "external_https_listeners")
+
+#! The Gateways served by Envoy Gateway. Each Gateway references its own EnvoyProxy resource, which configures
+#! the Envoy proxies deployed by Envoy Gateway for it, in the package namespace.
+#! See: https://gateway.envoyproxy.io/docs/tasks/operations/customize-envoyproxy
+
+#@ external = data.values.gateways.external
+#@ internal = data.values.gateways.internal
+#@ gateway_class_name = "envoy"
+
+#! Envoy Gateway deletes the Envoy proxies of a Gateway when the Gateway is deleted, so it must still be running.
+#@ gateways_change_group = "envoy-gateway.packages.kadras.io/gateways"
+
+#@ def change_group():
+kapp.k14s.io/change-group: #@ gateways_change_group
+#@ end
+
+#@ def envoy_proxy(name, is_external):
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: #@ name
+  namespace: #@ data.values.namespace
+  annotations: #@ change_group()
+spec: #@ envoy_proxy_spec(name, is_external)
+#@ end
+
+#@ def infrastructure(name):
+parametersRef:
+  group: gateway.envoyproxy.io
+  kind: EnvoyProxy
+  name: #@ name
+#@ end
+
+#@ if external.enabled or internal.enabled:
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: #@ gateway_class_name
+  annotations: #@ change_group()
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+#@ end
+
+#! =============================================
+#! External Gateway
+#! =============================================
+
+#@ if external.enabled:
+
+--- #@ envoy_proxy(external.name, True)
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: #@ external.name
+  namespace: #@ data.values.namespace
+  annotations: #@ change_group()
+spec:
+  gatewayClassName: #@ gateway_class_name
+  infrastructure: #@ infrastructure(external.name)
+  listeners:
+  #@ if external_http_redirect():
+  #! Only serves the redirect to HTTPS, and the ACME HTTP-01 challenges solved by cert-manager in the package namespace.
+  - name: http-redirect
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: Same
+  #@ else:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: #@ external.allowed_routes
+  #@ end
+  #@ for listener_name, hostname, certificate_name in external_https_listeners():
+  - name: #@ listener_name
+    protocol: HTTPS
+    port: 443
+    hostname: #@ hostname
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: #@ certificate_name
+    allowedRoutes:
+      namespaces:
+        from: #@ external.allowed_routes
+  #@ end
+
+#@ for _, hostname, certificate_name in external_https_listeners():
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: #@ certificate_name
+  namespace: #@ data.values.namespace
+spec:
+  secretName: #@ certificate_name
+  dnsNames:
+  - #@ hostname
+  issuerRef:
+    name: #@ external.tls.issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+#@ end
+
+#! The settings for the connections from the clients. Envoy Gateway applies a single ClientTrafficPolicy per Gateway.
+#@ proxy_protocol = data.values.envoy.service.proxy_protocol
+#@ if external_https_listeners() or proxy_protocol:
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  name: #@ external.name
+  namespace: #@ data.values.namespace
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: #@ external.name
+  #@ if external_https_listeners():
+  tls:
+    minVersion: #@ external.tls.min_version
+  #@ end
+  #@ if proxy_protocol:
+  proxyProtocol: {}
+  #@ end
+#@ end
+
+#@ if external_http_redirect():
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: #@ external.name + "-https-redirect"
+  namespace: #@ data.values.namespace
+spec:
+  parentRefs:
+  - name: #@ external.name
+    sectionName: http-redirect
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+#@ end
+
+#@ end
+
+#! =============================================
+#! Internal Gateway
+#! =============================================
+
+#@ if internal.enabled:
+
+--- #@ envoy_proxy(internal.name, False)
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: #@ internal.name
+  namespace: #@ data.values.namespace
+  annotations: #@ change_group()
+spec:
+  gatewayClassName: #@ gateway_class_name
+  infrastructure: #@ infrastructure(internal.name)
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: All
+
+#@ end
+
+#! =============================================
+#! EnvoyProxy configuration
+#! =============================================
+
+#@overlay/match by=overlay.subset({"kind":"EnvoyProxy"}), expects="0+"
+---
+#@overlay/match-child-defaults missing_ok=True
+spec: #@ struct.decode(data.values.envoy.config)
+
+#! =============================================
+#! Deletion order
+#! =============================================
+
+#@overlay/match by=overlay.subset({"kind":"Deployment", "metadata":{"name":"envoy-gateway"}})
+---
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-rule.gateways: #@ "delete after deleting " + gateways_change_group

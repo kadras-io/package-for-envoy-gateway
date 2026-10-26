@@ -1,0 +1,22 @@
+---
+controller:
+  config:
+    extensionApis:
+      enableBackend: true
+envoy:
+  replicas: 1
+  drain_timeout: 90s
+  service:
+    type: NodePort
+    external_traffic_policy: Cluster
+    annotations:
+      load-balancer.hetzner.cloud/location: nbg1
+    proxy_protocol: true
+  config:
+    provider:
+      kubernetes:
+        envoyDeployment:
+          container:
+            resources:
+              requests:
+                cpu: 100m

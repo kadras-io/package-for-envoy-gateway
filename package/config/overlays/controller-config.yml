@@ -1,0 +1,44 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:yaml", "yaml")
+#@ load("/lib/envoy_gateway.star", "envoy_gateway_config")
+
+#! 1. Decode/parse the contents of the `envoy-gateway.yaml` key within the ConfigMap.
+#! 2. Overlay the decoded/parsed YAML with the configuration computed from the package values.
+#! 3. Overlay the result with `controller.config`, so that it takes precedence.
+#! 4. Re-encode the overlayed result to a string.
+#!
+#! Envoy Gateway only reads its configuration at startup. The ConfigMap is versioned by kapp,
+#! so that a change creates a new ConfigMap and rolls out the Envoy Gateway Deployment referencing it.
+#! See: https://gateway.envoyproxy.io/docs/api/extension_types/#envoygateway
+
+#@ configmap = overlay.subset({"kind":"ConfigMap", "metadata":{"name":"envoy-gateway-config"}})
+
+#@overlay/match by=configmap
+---
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/versioned: ""
+data:
+  #@overlay/replace via=lambda left, _: yaml.decode(left)
+  envoy-gateway.yaml:
+
+#@overlay/match by=configmap
+---
+data:
+  #@overlay/match-child-defaults missing_ok=True
+  envoy-gateway.yaml: #@ envoy_gateway_config()
+
+#@overlay/match by=configmap
+---
+data:
+  #@overlay/match-child-defaults missing_ok=True
+  envoy-gateway.yaml: #@ data.values.controller.config
+
+#@overlay/match by=configmap
+---
+data:
+  #@overlay/replace via=lambda left, _: yaml.encode(left)
+  envoy-gateway.yaml:

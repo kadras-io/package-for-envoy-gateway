@@ -1,0 +1,26 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+
+#! Envoy Gateway exposes its metrics on port 19001, in the Prometheus format, and its Pods are annotated
+#! for scraping upstream. The Envoy proxies expose theirs on port 19001 too, and Envoy Gateway annotates
+#! their Pods unless Prometheus is disabled in the EnvoyProxy telemetry (see gateways.yml).
+#! See: https://gateway.envoyproxy.io/docs/tasks/observability/gateway-observability
+
+#@ metrics = data.values.observability.metrics
+
+#@overlay/match by=overlay.subset({"kind":"Deployment", "metadata":{"name":"envoy-gateway"}})
+---
+spec:
+  template:
+    metadata:
+      #@ if metrics.enabled and metrics.exporter == "prometheus":
+      #@overlay/match-child-defaults missing_ok=True
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/scheme: "http"
+        prometheus.io/port: "19001"
+        prometheus.io/path: "/metrics"
+      #@ else:
+      #@overlay/remove
+      annotations:
+      #@ end

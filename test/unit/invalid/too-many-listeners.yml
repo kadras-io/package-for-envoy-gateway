@@ -1,0 +1,8 @@
+# expected: at most 64 listeners on the external Gateway
+---
+gateways:
+  external:
+    domain: kadras.io
+    tls:
+      issuer: kadras-ca-issuer
+      hostnames: ["*.ns0.kadras.io", "*.ns1.kadras.io", "*.ns2.kadras.io", "*.ns3.kadras.io", "*.ns4.kadras.io", "*.ns5.kadras.io", "*.ns6.kadras.io", "*.ns7.kadras.io", "*.ns8.kadras.io", "*.ns9.kadras.io", "*.ns10.kadras.io", "*.ns11.kadras.io", "*.ns12.kadras.io", "*.ns13.kadras.io", "*.ns14.kadras.io", "*.ns15.kadras.io", "*.ns16.kadras.io", "*.ns17.kadras.io", "*.ns18.kadras.io", "*.ns19.kadras.io", "*.ns20.kadras.io", "*.ns21.kadras.io", "*.ns22.kadras.io", "*.ns23.kadras.io", "*.ns24.kadras.io", "*.ns25.kadras.io", "*.ns26.kadras.io", "*.ns27.kadras.io", "*.ns28.kadras.io", "*.ns29.kadras.io", "*.ns30.kadras.io", "*.ns31.kadras.io", "*.ns32.kadras.io", "*.ns33.kadras.io", "*.ns34.kadras.io", "*.ns35.kadras.io", "*.ns36.kadras.io", "*.ns37.kadras.io", "*.ns38.kadras.io", "*.ns39.kadras.io", "*.ns40.kadras.io", "*.ns41.kadras.io", "*.ns42.kadras.io", "*.ns43.kadras.io", "*.ns44.kadras.io", "*.ns45.kadras.io", "*.ns46.kadras.io", "*.ns47.kadras.io", "*.ns48.kadras.io", "*.ns49.kadras.io", "*.ns50.kadras.io", "*.ns51.kadras.io", "*.ns52.kadras.io", "*.ns53.kadras.io", "*.ns54.kadras.io", "*.ns55.kadras.io", "*.ns56.kadras.io", "*.ns57.kadras.io", "*.ns58.kadras.io", "*.ns59.kadras.io", "*.ns60.kadras.io", "*.ns61.kadras.io", "*.ns62.kadras.io"]

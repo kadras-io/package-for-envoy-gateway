@@ -1,0 +1,5 @@
+# expected: observability.metrics.endpoint
+---
+observability:
+  metrics:
+    exporter: otlp

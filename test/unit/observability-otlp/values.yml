@@ -1,0 +1,11 @@
+---
+observability:
+  logging:
+    level: debug
+  metrics:
+    exporter: otlp
+    endpoint: http://otel-collector.observability.svc:4317
+  tracing:
+    enabled: true
+    endpoint: otel-collector.observability:4317
+    sampling_rate: 0.25

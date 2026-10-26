@@ -1,0 +1,60 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+
+#! Deploys Envoy Gateway in the configured namespace. Envoy Gateway and the certgen Job derive the names
+#! of the resources they manage from it, like the topology injector webhook.
+
+#@ upstream = "envoy-gateway-system"
+#@ namespace = data.values.namespace
+#@ webhook = "envoy-gateway-topology-injector."
+
+#@overlay/match by=overlay.subset({"kind":"Namespace", "metadata":{"name":upstream}})
+---
+metadata:
+  name: #@ namespace
+
+#@overlay/match by=overlay.subset({"metadata":{"namespace":upstream}}), expects="10+"
+---
+metadata:
+  namespace: #@ namespace
+
+#@ cluster_role_binding = overlay.subset({"kind":"ClusterRoleBinding"})
+#@ role_binding = overlay.subset({"kind":"RoleBinding"})
+
+#@overlay/match by=overlay.or_op(cluster_role_binding, role_binding), expects="2+"
+---
+subjects:
+#@overlay/match by=overlay.subset({"namespace":upstream})
+- kind: ServiceAccount
+  namespace: #@ namespace
+
+#@overlay/match by=overlay.subset({"kind":"MutatingWebhookConfiguration"})
+---
+metadata:
+  name: #@ webhook + namespace
+webhooks:
+#@overlay/match by=overlay.all, expects="1+"
+- clientConfig:
+    service:
+      namespace: #@ namespace
+  namespaceSelector:
+    matchExpressions:
+    #@overlay/match by=overlay.subset({"key":"kubernetes.io/metadata.name"})
+    -
+      #@overlay/replace
+      values:
+      - #@ namespace
+
+#! The certgen Job patches the CA into the webhook configuration, which it finds by name.
+#@ def is_certgen_cluster_role(_, left, __):
+#@   return left["kind"] == "ClusterRole" and left["metadata"]["name"].startswith("eg-gateway-helm-certgen")
+#@ end
+
+#@overlay/match by=is_certgen_cluster_role, expects="0+"
+---
+rules:
+#@overlay/match by=lambda _, left, __: webhook + upstream in [name for name in (left["resourceNames"] if "resourceNames" in left else [])]
+-
+  #@overlay/replace
+  resourceNames:
+  - #@ webhook + namespace

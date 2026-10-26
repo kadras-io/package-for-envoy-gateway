@@ -1,0 +1,5 @@
+# expected: a number of hours, like `8760h`
+---
+tls:
+  internal:
+    duration: 365d

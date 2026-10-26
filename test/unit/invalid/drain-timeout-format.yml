@@ -1,0 +1,4 @@
+# expected: a duration, like `60s`
+---
+envoy:
+  drain_timeout: 1 minute

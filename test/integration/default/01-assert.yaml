@@ -1,0 +1,11 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - timeout: 30
+    script: ../../setup/scripts/probe.sh envoy-external http://hello.tests.127.0.0.1.sslip.io 200
+  - timeout: 30
+    script: ../../setup/scripts/probe.sh envoy-internal http://hello.tests.svc.cluster.local 200
+  # The internal route isn't served by the external Gateway.
+  - timeout: 30
+    script: ../../setup/scripts/probe.sh envoy-external http://hello.tests.svc.cluster.local 404

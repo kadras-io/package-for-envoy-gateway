@@ -1,0 +1,8 @@
+# expected: `gateways.external.tls.hostnames` to be distinct from `*.<domain>`
+---
+gateways:
+  external:
+    domain: kadras.io
+    tls:
+      issuer: kadras-ca-issuer
+      hostnames: ["*.kadras.io"]

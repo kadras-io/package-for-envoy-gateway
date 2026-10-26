@@ -1,0 +1,148 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+# Without TLS, the external Gateway serves HTTP to routes from any namespace.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: external
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: envoy
+  infrastructure:
+    parametersRef:
+      kind: EnvoyProxy
+      name: external
+  (listeners[*].name): [http]
+  (listeners[0].allowedRoutes.namespaces.from): All
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: internal
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: envoy
+  (listeners[*].name): [http]
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: external
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        replicas: 1
+        (starts_with(container.image, 'docker.io/envoyproxy/envoy:distroless-')): true
+        pod:
+          imagePullSecrets:
+          - name: canonical-registry-credentials
+      envoyService:
+        name: envoy-external
+        type: LoadBalancer
+        externalTrafficPolicy: Local
+      # With a single replica, no PodDisruptionBudget would block node drains.
+      (contains(keys(@), 'envoyPDB')): false
+  shutdown:
+    drainTimeout: 60s
+  telemetry:
+    metrics:
+      prometheus:
+        disable: false
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: internal
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    kubernetes:
+      envoyService:
+        name: envoy-internal
+        type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-gateway-config
+  namespace: envoy-gateway-system
+  annotations:
+    kapp.k14s.io/versioned: ""
+data:
+  (parse_yaml("envoy-gateway.yaml")):
+    logging:
+      level:
+        default: info
+    telemetry:
+      metrics:
+        prometheus:
+          disable: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+  annotations:
+    kapp.k14s.io/change-rule.certificates: upsert after upserting envoy-gateway.packages.kadras.io/certificates
+    kapp.k14s.io/change-rule.gateways: delete after deleting envoy-gateway.packages.kadras.io/gateways
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "19001"
+    spec:
+      imagePullSecrets:
+      - name: canonical-registry-credentials
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: eg-gateway-helm-certgen
+  namespace: envoy-gateway-system
+  annotations:
+    kapp.k14s.io/update-strategy: fallback-on-replace
+    kapp.k14s.io/change-group: envoy-gateway.packages.kadras.io/certificates
+    (contains(keys(@), 'helm.sh/hook')): false
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: envoy-gateway-system
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: canonical-registry-credentials
+  namespace: envoy-gateway-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: httproutes.gateway.networking.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-gateway-config
+  namespace: envoy-gateway-system
+data:
+  (parse_yaml("envoy-gateway.yaml")):
+    provider:
+      kubernetes:
+        rateLimitDeployment:
+          pod:
+            imagePullSecrets:
+            - name: canonical-registry-credentials

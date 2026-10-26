@@ -1,0 +1,29 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+
+#! Envoy Gateway runs with leader election: additional replicas are standby, and all of them serve xDS
+#! to the Envoy proxies. With more than one replica, a PodDisruptionBudget keeps at least one available.
+#! The Envoy proxies are scaled via their EnvoyProxy resources (see gateways.yml).
+
+#@overlay/match by=overlay.subset({"kind":"Deployment", "metadata":{"name":"envoy-gateway"}})
+---
+spec:
+  replicas: #@ data.values.controller.replicas
+
+#@ if data.values.controller.replicas > 1:
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: envoy-gateway
+  namespace: #@ data.values.namespace
+  labels:
+    app.kubernetes.io/name: envoy-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      control-plane: envoy-gateway
+      app.kubernetes.io/name: gateway-helm
+      app.kubernetes.io/instance: eg
+#@ end

@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy-gateway
+  namespace: ingress
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: external
+  namespace: ingress
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: envoy-gateway-topology-injector.ingress
+webhooks:
+- clientConfig:
+    service:
+      namespace: ingress
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      values: [ingress]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: eg-gateway-helm-certgen:envoy-gateway-system
+rules:
+- resources: [mutatingwebhookconfigurations]
+- resourceNames: [envoy-gateway-topology-injector.ingress]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: eg-gateway-helm-envoy-gateway-rolebinding
+subjects:
+- kind: ServiceAccount
+  namespace: ingress

@@ -1,0 +1,7 @@
+# expected: from each other after replacing dots with dashes
+---
+gateways:
+  external:
+    tls:
+      issuer: kadras-ca-issuer
+      hostnames: ["a.b.kadras.io", "a-b.kadras.io"]

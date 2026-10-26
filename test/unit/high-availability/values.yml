@@ -1,0 +1,5 @@
+---
+controller:
+  replicas: 3
+envoy:
+  replicas: 3

@@ -1,0 +1,6 @@
+---
+tls:
+  internal:
+    provider: cert-manager
+    duration: 2160h
+    renew_before: 240h

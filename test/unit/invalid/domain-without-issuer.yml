@@ -1,0 +1,5 @@
+# expected: `gateways.external.tls.issuer` to be set
+---
+gateways:
+  external:
+    domain: kadras.io

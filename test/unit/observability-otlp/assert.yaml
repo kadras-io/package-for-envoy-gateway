@@ -1,0 +1,47 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: external
+  namespace: envoy-gateway-system
+spec:
+  logging:
+    level:
+      default: debug
+  telemetry:
+    metrics:
+      prometheus:
+        disable: true
+      sinks:
+      - type: OpenTelemetry
+        openTelemetry:
+          host: otel-collector.observability.svc
+          port: 4317
+    tracing:
+      samplingFraction:
+        numerator: 2500
+        denominator: 10000
+      provider:
+        type: OpenTelemetry
+        host: otel-collector.observability
+        port: 4317
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-gateway-config
+  namespace: envoy-gateway-system
+data:
+  (parse_yaml("envoy-gateway.yaml")):
+    logging:
+      level:
+        default: debug
+    telemetry:
+      metrics:
+        prometheus:
+          disable: true
+        sinks:
+        - type: OpenTelemetry
+          openTelemetry:
+            host: otel-collector.observability.svc
+            port: 4317
+            protocol: grpc

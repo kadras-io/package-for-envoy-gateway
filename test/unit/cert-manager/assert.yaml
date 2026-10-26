@@ -1,0 +1,53 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: envoy-gateway-ca
+  namespace: envoy-gateway-system
+spec:
+  isCA: true
+  secretName: envoy-gateway-ca
+  duration: 2160h
+  renewBefore: 240h
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+  annotations:
+    kapp.k14s.io/change-group: envoy-gateway.packages.kadras.io/certificates
+spec:
+  secretName: envoy-gateway
+  dnsNames:
+  - envoy-gateway
+  - envoy-gateway.envoy-gateway-system
+  - envoy-gateway.envoy-gateway-system.svc
+  - envoy-gateway.envoy-gateway-system.svc.cluster.local
+  issuerRef:
+    name: envoy-gateway-ca-issuer
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: envoy
+  namespace: envoy-gateway-system
+spec:
+  secretName: envoy
+  commonName: '*'
+  dnsNames: ['*.envoy-gateway-system']
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: envoy-rate-limit
+  namespace: envoy-gateway-system
+spec:
+  secretName: envoy-rate-limit
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: envoy-gateway-topology-injector.envoy-gateway-system
+  annotations:
+    cert-manager.io/inject-ca-from: envoy-gateway-system/envoy-gateway

@@ -1,0 +1,10 @@
+---
+gateways:
+  external:
+    allowed_routes: Same
+    domain: kadras.io
+    tls:
+      issuer: kadras-ca-issuer
+      hostnames:
+        - "*.team-a.kadras.io"
+        - www.example.org

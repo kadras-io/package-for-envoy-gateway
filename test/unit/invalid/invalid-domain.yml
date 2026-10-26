@@ -1,0 +1,7 @@
+# expected: must be: a valid DNS name
+---
+gateways:
+  external:
+    domain: Kadras_IO
+    tls:
+      issuer: kadras-ca-issuer

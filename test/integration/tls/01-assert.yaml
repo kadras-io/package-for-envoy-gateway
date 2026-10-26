@@ -1,0 +1,18 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  # HTTP requests are redirected to HTTPS.
+  - timeout: 30
+    script: ../../setup/scripts/probe.sh envoy-external http://hello.tests.127.0.0.1.sslip.io 301
+  - timeout: 30
+    script: ../../setup/scripts/probe.sh envoy-external https://hello.tests.127.0.0.1.sslip.io 200
+  # The request is served with the certificate of the `*.tests.<domain>` listener.
+  - timeout: 30
+    script: |
+      ip=$(kubectl get service envoy-external -n envoy-gateway-system -o jsonpath='{.spec.clusterIP}')
+      kubectl exec -n tests curl -- curl -sk --max-time 5 -o /dev/null -w '%{certs}' \
+        --resolve "hello.tests.127.0.0.1.sslip.io:443:$ip" https://hello.tests.127.0.0.1.sslip.io \
+        | grep -q 'DNS:\*\.tests\.127\.0\.0\.1\.sslip\.io'
+  - timeout: 30
+    script: ../../setup/scripts/probe.sh envoy-internal http://hello.tests.svc.cluster.local 200

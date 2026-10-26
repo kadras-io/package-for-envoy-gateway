@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+spec:
+  replicas: 3
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      control-plane: envoy-gateway
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: external
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    kubernetes:
+      envoyDeployment:
+        replicas: 3
+      envoyPDB:
+        minAvailable: 1

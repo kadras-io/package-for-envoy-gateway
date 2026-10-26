@@ -1,0 +1,17 @@
+#@ load("@ytt:overlay", "overlay")
+
+#! Envoy Gateway, the certgen Job, and the Envoy proxies comply with the "restricted" Pod Security Standard,
+#! enforced on the package namespace, where the Envoy proxies run too.
+#! See: https://kubernetes.io/docs/concepts/security/pod-security-standards/
+
+#@overlay/match by=overlay.subset({"kind":"Namespace"})
+---
+metadata:
+  #@overlay/match missing_ok=True
+  labels:
+    #@overlay/match missing_ok=True
+    pod-security.kubernetes.io/enforce: restricted
+    #@overlay/match missing_ok=True
+    pod-security.kubernetes.io/audit: restricted
+    #@overlay/match missing_ok=True
+    pod-security.kubernetes.io/warn: restricted

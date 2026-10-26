@@ -1,0 +1,12 @@
+apiVersion: batch/v1
+kind: Job
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eg-gateway-helm-certgen
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: eg-gateway-helm-certgen:envoy-gateway-system

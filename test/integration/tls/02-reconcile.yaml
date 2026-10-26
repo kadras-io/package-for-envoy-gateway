@@ -1,0 +1,14 @@
+---
+# Deploying the package again, as kapp-controller does periodically, doesn't change anything:
+# kapp keeps the fields set at runtime by Envoy Gateway and cert-manager.
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      cd ../../../package
+      output=$(ytt -f ../test/integration/tls/config -f package-resources.yml | kctrl dev -f- --local -y 2>&1)
+      echo "$output" | grep "Op:"
+      if echo "$output" | grep "Op:" | grep -qvE "Op: +0 create, 0 delete, 0 update"; then
+        echo "$output"
+        exit 1
+      fi

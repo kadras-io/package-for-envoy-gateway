@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+---
+# With a single replica, no PodDisruptionBudget for Envoy Gateway.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+spec:
+  telemetry:
+    (contains(keys(@), 'tracing')): true
+---
+# Without HTTPS listeners, there are no TLS settings to apply.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy

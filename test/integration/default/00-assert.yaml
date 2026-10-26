@@ -1,0 +1,64 @@
+# Envoy Gateway
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+status:
+  readyReplicas: 1
+
+# Certgen
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: eg-gateway-helm-certgen
+  namespace: envoy-gateway-system
+  annotations:
+    kapp.k14s.io/update-strategy: fallback-on-replace
+status:
+  succeeded: 1
+
+# Gateways and their Envoy proxies
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy-external
+  namespace: envoy-gateway-system
+spec:
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy-internal
+  namespace: envoy-gateway-system
+spec:
+  type: ClusterIP
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: kubectl wait --for=condition=Programmed gateway/external gateway/internal -n envoy-gateway-system --timeout=120s
+
+# Security
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: envoy-gateway-system
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+
+# Image Pull Secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: canonical-registry-credentials
+  namespace: envoy-gateway-system
+  annotations:
+    secretgen.carvel.dev/image-pull-secret: ""
+type: kubernetes.io/dockerconfigjson

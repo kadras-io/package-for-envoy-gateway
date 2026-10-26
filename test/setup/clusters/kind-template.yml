@@ -1,0 +1,22 @@
+#@ load("@ytt:data", "data")
+
+#@ def kind_version_map():
+#@   return {
+#@     "1.35": "kindest/node:v1.35.8",
+#@     "1.36": "kindest/node:v1.36.4",
+#@     "1.37": "kindest/node:v1.37.0"
+#@   }
+#@ end
+
+---
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  image: #@ kind_version_map()[data.values.k8s_version]
+- role: worker
+  image: #@ kind_version_map()[data.values.k8s_version]
+- role: worker
+  image: #@ kind_version_map()[data.values.k8s_version]
+- role: worker
+  image: #@ kind_version_map()[data.values.k8s_version]

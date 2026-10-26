@@ -1,0 +1,7 @@
+# expected: a valid hostname, optionally prefixed with `*.`
+---
+gateways:
+  external:
+    tls:
+      issuer: kadras-ca-issuer
+      hostnames: ["team-a.*.kadras.io"]
