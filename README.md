@@ -188,6 +188,8 @@ The Envoy Gateway package has the following configurable properties.
 | `envoy.service.type` | `"LoadBalancer"` | The type of the Service. |
 | `envoy.service.external_traffic_policy` | `"Local"` | The external traffic policy of the Service, when `type` is `LoadBalancer` or `NodePort`. `Local` preserves the client source IP. |
 | `envoy.service.annotations` | `{}` | Annotations for the Service, for example to configure the load balancer implementation. |
+| `envoy.service.node_ports.http` | `0` | The node port for HTTP traffic, on port 80 of the Service. It must be in the node port range of the cluster, 30000-32767 by default. |
+| `envoy.service.node_ports.https` | `0` | The node port for HTTPS traffic, on port 443 of the Service. Only used when the external Gateway has HTTPS listeners. It must be in the node port range of the cluster, 30000-32767 by default. |
 | `envoy.service.proxy_protocol` | `false` | Whether the load balancer in front of the Service sends the PROXY protocol, to preserve the client source IP. Envoy then rejects the connections without it. Enable it together with the load balancer setting, like the `load-balancer.hetzner.cloud/uses-proxyprotocol` annotation on Hetzner. |
 | `envoy.config` | `{}` | EnvoyProxy configuration, merged on top of the one computed by the package for every Gateway. See https://gateway.envoyproxy.io/docs/api/extension_types/#envoyproxyspec. |
 | `tls.internal.provider` | `"certgen"` | How the certificates are provisioned. `certgen` generates them with a Job at installation, and doesn't renew them. `cert-manager` issues and renews them via cert-manager, which must be installed in the cluster. |

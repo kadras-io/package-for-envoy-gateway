@@ -1,0 +1,16 @@
+#@ load("@ytt:overlay", "overlay")
+
+#! The upstream manifest includes the Gateway API CRDs and the `safe-upgrades` admission policy, in the experimental
+#! channel. They're shared with the other packages working with the Gateway API, like cert-manager, so they're installed
+#! by the Kadras Gateway API package instead, in the same version and channel. All of them carry the bundle version annotation.
+#! See: https://github.com/kadras-io/package-for-gateway-api
+
+#@ def is_gateway_api_resource(_, left, __):
+#@   metadata = left["metadata"] if "metadata" in left else None
+#@   annotations = metadata["annotations"] if metadata and "annotations" in metadata else None
+#@   return annotations != None and "gateway.networking.k8s.io/bundle-version" in annotations
+#@ end
+
+#@overlay/match by=is_gateway_api_resource, expects="1+"
+#@overlay/remove
+---

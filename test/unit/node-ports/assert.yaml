@@ -1,0 +1,20 @@
+# The Service ports are patched by `port`, since EnvoyProxy has no field for the node ports.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: external
+spec:
+  provider:
+    kubernetes:
+      envoyService:
+        name: envoy-external
+        type: NodePort
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+              - port: 80
+                nodePort: 30080
+              - port: 443
+                nodePort: 30443

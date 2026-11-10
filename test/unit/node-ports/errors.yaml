@@ -1,0 +1,10 @@
+# The internal Gateway always uses a ClusterIP Service, without node ports.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: internal
+spec:
+  provider:
+    kubernetes:
+      envoyService:
+        (patch != null): true

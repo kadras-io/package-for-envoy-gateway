@@ -63,6 +63,21 @@ end
 # ENVOY PROXY
 # ########
 
+# The fixed node ports of the external Envoy Service. EnvoyProxy has no field for them, so they're set via a strategic
+# merge patch of the Service ports, matched by `port`. Only the ports of existing listeners are patched, since the patch
+# would otherwise add an incomplete port to the Service: 443 is only exposed when there are HTTPS listeners.
+def _external_node_ports():
+  node_ports = data.values.envoy.service.node_ports
+  ports = []
+  if node_ports.http:
+    ports.append({"port": 80, "nodePort": node_ports.http})
+  end
+  if node_ports.https and external_https_listeners():
+    ports.append({"port": 443, "nodePort": node_ports.https})
+  end
+  return ports
+end
+
 # The EnvoyProxy configuration computed from the package values for a Gateway. `envoy.config` is merged on top of it.
 # The Envoy Service is named `envoy-<gateway>`, so that other packages can reference it.
 def envoy_proxy_spec(gateway_name, external):
@@ -73,6 +88,10 @@ def envoy_proxy_spec(gateway_name, external):
     service["annotations"] = struct.decode(envoy.service.annotations)
     if envoy.service.type != "ClusterIP":
       service["externalTrafficPolicy"] = envoy.service.external_traffic_policy
+      ports = _external_node_ports()
+      if ports:
+        service["patch"] = {"type": "StrategicMerge", "value": {"spec": {"ports": ports}}}
+      end
     end
   end
 

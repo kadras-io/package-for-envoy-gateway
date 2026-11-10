@@ -1,0 +1,13 @@
+#! Fixed node ports for a local cluster, with HTTPS on the external Gateway.
+---
+gateways:
+  external:
+    domain: 127.0.0.1.sslip.io
+    tls:
+      issuer: kadras-ca-issuer
+envoy:
+  service:
+    type: NodePort
+    node_ports:
+      http: 30080
+      https: 30443

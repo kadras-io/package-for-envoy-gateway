@@ -1,0 +1,7 @@
+# expected: `envoy.service.type` to be `NodePort` or `LoadBalancer` when `envoy.service.node_ports` are set
+---
+envoy:
+  service:
+    type: ClusterIP
+    node_ports:
+      http: 30080

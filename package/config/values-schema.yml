@@ -31,12 +31,17 @@
 #@   return hours(internal["renew_before"]) < hours(internal["duration"])
 #@ end
 
+#@ def node_ports_exposed(values):
+#@   service = values["envoy"]["service"]
+#@   return service["type"] != "ClusterIP" or (service["node_ports"]["http"] == 0 and service["node_ports"]["https"] == 0)
+#@ end
+
 #@ def otlp_enabled(signal):
 #@   return signal["enabled"] and signal["exporter"] == "otlp"
 #@ end
 
 #@data/values-schema
-#@schema/validation ("`gateways.external.tls.issuer` to be set when `gateways.external.domain` or `gateways.external.tls.hostnames` are", external_tls_complete), ("`gateways.external.tls.hostnames` to be distinct from `*.<domain>`, and from each other after replacing dots with dashes", distinct_hostname_listeners), ("at most 64 listeners on the external Gateway: one for HTTP, one for `domain`, and one for each of `tls.hostnames`", external_listeners_within_limit), ("`tls.internal.renew_before` to be shorter than `tls.internal.duration`", renewal_before_expiry)
+#@schema/validation ("`gateways.external.tls.issuer` to be set when `gateways.external.domain` or `gateways.external.tls.hostnames` are", external_tls_complete), ("`gateways.external.tls.hostnames` to be distinct from `*.<domain>`, and from each other after replacing dots with dashes", distinct_hostname_listeners), ("at most 64 listeners on the external Gateway: one for HTTP, one for `domain`, and one for each of `tls.hostnames`", external_listeners_within_limit), ("`tls.internal.renew_before` to be shorter than `tls.internal.duration`", renewal_before_expiry), ("`envoy.service.type` to be `NodePort` or `LoadBalancer` when `envoy.service.node_ports` are set", node_ports_exposed)
 ---
 
 #@schema/desc "The namespace in which to deploy Envoy Gateway. The Envoy proxies of the Gateways run in the same namespace."
@@ -121,6 +126,16 @@ envoy:
     #@schema/desc "Annotations for the Service, for example to configure the load balancer implementation."
     #@schema/type any=True
     annotations: {}
+    #@schema/desc "The node ports of the Service, when `type` is `NodePort` or `LoadBalancer`. Fixed node ports let local clusters, like kind and k3d, map the host ports 80 and 443 to the external Gateway. Set a port to 0 to let Kubernetes assign it."
+    node_ports:
+      #@schema/desc "The node port for HTTP traffic, on port 80 of the Service. It must be in the node port range of the cluster, 30000-32767 by default."
+      #@schema/examples ("Local cluster", 30080)
+      #@schema/validation min=0, max=65535
+      http: 0
+      #@schema/desc "The node port for HTTPS traffic, on port 443 of the Service. Only used when the external Gateway has HTTPS listeners. It must be in the node port range of the cluster, 30000-32767 by default."
+      #@schema/examples ("Local cluster", 30443)
+      #@schema/validation min=0, max=65535
+      https: 0
     #@schema/desc "Whether the load balancer in front of the Service sends the PROXY protocol, to preserve the client source IP. Envoy then rejects the connections without it. Enable it together with the load balancer setting, like the `load-balancer.hetzner.cloud/uses-proxyprotocol` annotation on Hetzner."
     proxy_protocol: false
   #@schema/desc "EnvoyProxy configuration, merged on top of the one computed by the package for every Gateway. See https://gateway.envoyproxy.io/docs/api/extension_types/#envoyproxyspec."

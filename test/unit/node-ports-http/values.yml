@@ -1,0 +1,8 @@
+#! Without HTTPS listeners, only the HTTP node port is patched: patching port 443 would add an incomplete port to the Service.
+---
+envoy:
+  service:
+    type: NodePort
+    node_ports:
+      http: 30080
+      https: 30443
