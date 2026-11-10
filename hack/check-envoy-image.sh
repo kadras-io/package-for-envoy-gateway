@@ -11,7 +11,7 @@ set -euo pipefail
 version=$(sed -n 's/^ *tag: //p' package/vendir.yml)
 source_url="https://raw.githubusercontent.com/envoyproxy/gateway/$version/api/v1alpha1/shared_types.go"
 
-expected=$(curl -fsSL "$source_url" | sed -n 's/^\s*DefaultEnvoyProxyImage = "\(.*\)"/\1/p')
+expected=$(curl -fsSL "$source_url" | sed -n 's/^[[:space:]]*DefaultEnvoyProxyImage = "\(.*\)"/\1/p')
 actual=$(sed -n 's/^envoy_image = "\(.*\)"/\1/p' package/config/lib/envoy_gateway.star)
 
 if [[ -z $expected ]]; then

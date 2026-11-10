@@ -5,7 +5,7 @@ load("/lib/validation.star", "hostname_slug")
 # The Envoy proxy image used by Envoy Gateway by default (`DefaultEnvoyProxyImage` in the Envoy Gateway release).
 # It's set explicitly on the EnvoyProxy resources, so that kbld can relocate it with the package.
 # Update it together with the upstream version in `vendir.yml`: `task check:envoy-image` verifies they match.
-envoy_image = "docker.io/envoyproxy/envoy:distroless-v1.39.5@sha256:9d84a586119a27b50437dbb01eccd4722832741539b1ed53c8e9d6da6067a6e0"
+envoy_image = "docker.io/envoyproxy/envoy:distroless-v1.40.2@sha256:09ca6f2140a61ad8df11779a4a30d52b48433d444466328494f9188c9c35eded"
 
 image_pull_secret_name = "canonical-registry-credentials"
 
