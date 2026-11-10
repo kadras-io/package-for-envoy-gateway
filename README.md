@@ -34,8 +34,6 @@ kapp deploy -a kapp-controller -y \
 
 Envoy Gateway requires the [Gateway API](https://github.com/kadras-io/package-for-gateway-api) package, which installs the Gateway API CRDs from the experimental channel, in the version required by Envoy Gateway. [cert-manager](https://github.com/kadras-io/package-for-cert-manager) is needed to serve HTTPS on the external Gateway (`gateways.external.tls.issuer`) and to issue the certificates between Envoy Gateway and the Envoy proxies (`tls.internal.provider: cert-manager`). You can install them from the [Kadras package repository](https://github.com/kadras-io/kadras-packages).
 
-Previous versions of this package installed the Gateway API CRDs themselves. Before upgrading from one of them, install the Gateway API package, which takes them over: otherwise, the upgrade deletes them, and with them all the Gateways and routes in the cluster.
-
 ### Installation
 
 Add the Kadras [package repository](https://github.com/kadras-io/kadras-packages) to your Kubernetes cluster:
