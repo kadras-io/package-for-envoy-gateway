@@ -2,6 +2,13 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 commands:
+  # The Envoy Service of the external Gateway exposes the fixed node ports.
+  - timeout: 30
+    script: |
+      ports=$(kubectl get service envoy-external -n envoy-gateway-system \
+        -o jsonpath='{range .spec.ports[*]}{.port}:{.nodePort} {end}')
+      echo "$ports"
+      echo "$ports" | grep -q '80:30080' && echo "$ports" | grep -q '443:30443'
   # HTTP requests are redirected to HTTPS.
   - timeout: 30
     script: ../../setup/scripts/probe.sh envoy-external http://hello.tests.127.0.0.1.sslip.io 301

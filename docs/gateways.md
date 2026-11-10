@@ -64,6 +64,42 @@ envoy:
     external_traffic_policy: Cluster
 ```
 
+### Local clusters
+
+On local clusters like [kind](https://kind.sigs.k8s.io) and [k3d](https://k3d.io), fixed node ports let you map the host ports 80 and 443 to the external Gateway, so that applications are reachable from your machine via a domain like `127.0.0.1.sslip.io`. The HTTPS node port is only used when the external Gateway has HTTPS listeners.
+
+```yaml
+envoy:
+  service:
+    type: NodePort
+    external_traffic_policy: Cluster
+    node_ports:
+      http: 30080
+      https: 30443
+```
+
+Then, map the host ports to the node ports when creating the cluster. With kind:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 80
+      - containerPort: 30443
+        hostPort: 443
+```
+
+With k3d:
+
+```shell
+k3d cluster create --port "80:30080@server:0" --port "443:30443@server:0"
+```
+
+EnvoyProxy has no field for the node ports, so the package sets them via a patch of the Service ports (`provider.kubernetes.envoyService.patch`). Setting a patch in `envoy.config` replaces it.
+
 ### PROXY protocol
 
 When the load balancer proxies the connections, Envoy sees the address of the load balancer instead of the one of the client, unless the load balancer sends it via the [PROXY protocol](https://www.haproxy.org/download/2.1/doc/proxy-protocol.txt). The client address is needed, for example, to restrict access by IP. Enable the PROXY protocol on both the load balancer and Envoy, which then rejects the connections without it. For example, on Hetzner:

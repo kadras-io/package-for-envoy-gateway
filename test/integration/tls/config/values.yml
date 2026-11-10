@@ -15,7 +15,11 @@ stringData:
             - "*.tests.127.0.0.1.sslip.io"
     envoy:
       service:
-        type: ClusterIP
+        type: NodePort
+        external_traffic_policy: Cluster
+        node_ports:
+          http: 30080
+          https: 30443
     tls:
       internal:
         provider: cert-manager
