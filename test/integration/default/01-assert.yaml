@@ -9,3 +9,10 @@ commands:
   # The internal route isn't served by the external Gateway.
   - timeout: 30
     script: ../../setup/scripts/probe.sh envoy-external http://hello.tests.svc.cluster.local 404
+  # The `edit` role manages the policies of the routes, and only reads the resources affecting the shared Gateways.
+  - script: test "$(kubectl auth can-i create securitypolicies.gateway.envoyproxy.io -n tests --as=developer)" = yes
+  - script: test "$(kubectl auth can-i delete backendtrafficpolicies.gateway.envoyproxy.io -n tests --as=developer)" = yes
+  - script: test "$(kubectl auth can-i list envoyextensionpolicies.gateway.envoyproxy.io -n tests --as=developer)" = yes
+  - script: test "$(kubectl auth can-i create backends.gateway.envoyproxy.io -n tests --as=developer)" = no
+  - script: test "$(kubectl auth can-i create envoyextensionpolicies.gateway.envoyproxy.io -n tests --as=developer)" = no
+  - script: test "$(kubectl auth can-i create envoypatchpolicies.gateway.envoyproxy.io -n tests --as=developer)" = no

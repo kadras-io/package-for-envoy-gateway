@@ -1,0 +1,32 @@
+#! The permissions on the Envoy Gateway resources, added to the Kubernetes default roles via aggregation, so that the
+#! users bound to `admin`, `edit`, or `view` in a namespace can use them there. `view` is included in `edit`,
+#! and `edit` in `admin`. The resources are listed explicitly, so that new ones are granted deliberately.
+#! See: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
+
+#! The policies and filters attached to the routes of the namespace. The other resources affect the shared Gateways
+#! and proxies, managed by the platform: Backends can send traffic to any address, EnvoyExtensionPolicies run code in
+#! the proxies, EnvoyPatchPolicies patch their configuration, and ClientTrafficPolicies and EnvoyProxies configure the Gateways.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: envoy-gateway-edit
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+  - apiGroups: ["gateway.envoyproxy.io"]
+    resources: ["backendtrafficpolicies", "securitypolicies", "httproutefilters"]
+    verbs: ["create", "delete", "deletecollection", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: envoy-gateway-view
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+  - apiGroups: ["gateway.envoyproxy.io"]
+    resources: ["backendtrafficpolicies", "securitypolicies", "httproutefilters", "backends", "envoyextensionpolicies", "envoypatchpolicies", "clienttrafficpolicies", "envoyproxies"]
+    verbs: ["get", "list", "watch"]

@@ -3,3 +3,5 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands:
   - script: kapp deploy -a hello -n tests -y -f ../../setup/application
+  # A user with the `edit` role in the namespace, to check the permissions added to the default roles.
+  - script: kubectl create rolebinding developer -n tests --clusterrole=edit --user=developer --dry-run=client -o yaml | kubectl apply -f -

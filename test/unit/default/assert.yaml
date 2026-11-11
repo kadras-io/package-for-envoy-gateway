@@ -148,3 +148,21 @@ data:
           pod:
             imagePullSecrets:
             - name: canonical-registry-credentials
+---
+# The Envoy Gateway resources are added to the Kubernetes default roles.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: envoy-gateway-edit
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+  - resources: ["backendtrafficpolicies", "securitypolicies", "httproutefilters"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: envoy-gateway-view
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"

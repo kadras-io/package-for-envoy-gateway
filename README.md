@@ -16,6 +16,7 @@ A Carvel package for [Envoy Gateway](https://gateway.envoyproxy.io), which manag
 * **Observability**. Prometheus metrics, or metrics and traces exported via OpenTelemetry.
 * **TLS**. Mutual TLS between Envoy Gateway and the Envoy proxies, with certificates generated at installation or issued by cert-manager.
 * **Security**. The workloads comply with the `restricted` [Pod Security Standard](https://kubernetes.io/docs/concepts/security/pod-security-standards/), enforced on the package namespace.
+* **Access**. The Kubernetes default roles are extended with the Envoy Gateway resources: `edit` and `admin` manage the policies and filters of the routes in a namespace, while the resources affecting the shared Gateways are read-only. See [docs/rbac.md](docs/rbac.md).
 
 ## 🚀&nbsp; Getting Started
 
@@ -123,6 +124,7 @@ Features:
 * [Observability](docs/observability.md)
 * [TLS between the components](docs/tls.md)
 * [Security](docs/security.md)
+* [Access to the resources](docs/rbac.md)
 
 Operations:
 
