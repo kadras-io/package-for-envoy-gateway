@@ -51,3 +51,20 @@ metadata:
   name: envoy-gateway-topology-injector.envoy-gateway-system
   annotations:
     cert-manager.io/inject-ca-from: envoy-gateway-system/envoy-gateway
+---
+# The certgen Job runs once cert-manager has issued the certificates, so it only creates the `envoy-oidc-hmac` Secret.
+# cert-manager injects the CA into the webhook configuration instead of the Job.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: eg-gateway-helm-certgen
+  namespace: envoy-gateway-system
+  annotations:
+    kapp.k14s.io/change-group: envoy-gateway.packages.kadras.io/certgen
+    kapp.k14s.io/change-rule.certificates: upsert after upserting envoy-gateway.packages.kadras.io/certificates
+spec:
+  template:
+    spec:
+      containers:
+        - args:
+            - --disable-topology-injector

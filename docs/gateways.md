@@ -92,10 +92,12 @@ nodes:
         hostPort: 443
 ```
 
-With k3d:
+With k3d, also disable the Traefik ingress controller and the Gateway API CRDs bundled with k3s, since the Gateway API package installs the ones required by Envoy Gateway:
 
 ```shell
-k3d cluster create --port "80:30080@server:0" --port "443:30443@server:0"
+k3d cluster create --port "80:30080@server:0" --port "443:30443@server:0" \
+  --k3s-arg "--disable=traefik@server:0" \
+  --k3s-arg "--disable=gateway-api-crd@server:0"
 ```
 
 EnvoyProxy has no field for the node ports, so the package sets them via a patch of the Service ports (`provider.kubernetes.envoyService.patch`). Setting a patch in `envoy.config` replaces it.

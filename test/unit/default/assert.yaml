@@ -93,6 +93,7 @@ metadata:
   namespace: envoy-gateway-system
   annotations:
     kapp.k14s.io/change-rule.certificates: upsert after upserting envoy-gateway.packages.kadras.io/certificates
+    kapp.k14s.io/change-rule.certgen: upsert after upserting envoy-gateway.packages.kadras.io/certgen
     kapp.k14s.io/change-rule.gateways: delete after deleting envoy-gateway.packages.kadras.io/gateways
 spec:
   replicas: 1
@@ -112,7 +113,7 @@ metadata:
   namespace: envoy-gateway-system
   annotations:
     kapp.k14s.io/update-strategy: fallback-on-replace
-    kapp.k14s.io/change-group: envoy-gateway.packages.kadras.io/certificates
+    kapp.k14s.io/change-group: envoy-gateway.packages.kadras.io/certgen
     (contains(keys(@), 'helm.sh/hook')): false
 ---
 apiVersion: v1

@@ -19,6 +19,14 @@ metadata:
     kapp.k14s.io/update-strategy: fallback-on-replace
 status:
   succeeded: 1
+---
+# The certgen Job also creates the HMAC Secret used for OIDC.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: envoy-oidc-hmac
+  namespace: envoy-gateway-system
+type: Opaque
 
 # Gateways and their Envoy proxies
 ---

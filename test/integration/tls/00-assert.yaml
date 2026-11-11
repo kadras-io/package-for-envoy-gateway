@@ -8,9 +8,35 @@ metadata:
 status:
   readyReplicas: 1
 ---
+# The certgen Job creates the HMAC Secret used for OIDC, and leaves the certificates issued by cert-manager unchanged.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: eg-gateway-helm-certgen
+  namespace: envoy-gateway-system
+status:
+  succeeded: 1
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: envoy-oidc-hmac
+  namespace: envoy-gateway-system
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+  annotations:
+    cert-manager.io/issuer-name: envoy-gateway-ca-issuer
+---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 commands:
+  # Envoy Gateway finds the HMAC Secret.
+  - script: "! kubectl logs deployment/envoy-gateway -n envoy-gateway-system | grep -q 'failed to process OIDC HMAC Secret'"
   - script: kubectl wait --for=condition=Ready certificate --all -n envoy-gateway-system --timeout=120s
   - script: kubectl wait --for=condition=Programmed gateway/external gateway/internal -n envoy-gateway-system --timeout=120s
   # The CA of the webhook is injected by cert-manager.

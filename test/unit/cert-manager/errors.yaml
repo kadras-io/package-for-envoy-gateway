@@ -1,12 +1,10 @@
-apiVersion: batch/v1
-kind: Job
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: eg-gateway-helm-certgen
----
+# The certgen Job doesn't patch the webhook configuration, so it doesn't get the cluster-wide permissions to do it.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
+metadata:
+  name: eg-gateway-helm-certgen:envoy-gateway-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
 metadata:
   name: eg-gateway-helm-certgen:envoy-gateway-system

@@ -8,21 +8,15 @@
 #@ internal = data.values.tls.internal
 #@ namespace = data.values.namespace
 
-#! Envoy Gateway mounts the `envoy-gateway` Secret at startup, so it starts once the certificates are available.
+#! Envoy Gateway mounts the `envoy-gateway` Secret at startup, so it starts once the certificates are available,
+#! and the certgen Job has run.
 #@ certificates_change_group = "envoy-gateway.packages.kadras.io/certificates"
+#@ certgen_change_group = "envoy-gateway.packages.kadras.io/certgen"
 
 #@ certgen_job = overlay.subset({"kind":"Job", "metadata":{"name":"eg-gateway-helm-certgen"}})
 
-#@ def is_certgen_resource(index, left, right):
-#@   if "metadata" not in left:
-#@     return False
-#@   end
-#@   name = left["metadata"]["name"]
-#@   kind = left["kind"]
-#@   if kind in ["ServiceAccount", "Role", "RoleBinding", "Job"]:
-#@     return name == "eg-gateway-helm-certgen"
-#@   end
-#@   return kind in ["ClusterRole", "ClusterRoleBinding"] and name.startswith("eg-gateway-helm-certgen")
+#@ def is_certgen_cluster_rbac(index, left, right):
+#@   return left["kind"] in ["ClusterRole", "ClusterRoleBinding"] and left["metadata"]["name"].startswith("eg-gateway-helm-certgen")
 #@ end
 
 #@overlay/match by=overlay.subset({"kind":"Deployment", "metadata":{"name":"envoy-gateway"}})
@@ -32,10 +26,46 @@ metadata:
   annotations:
     #@overlay/match missing_ok=True
     kapp.k14s.io/change-rule.certificates: #@ "upsert after upserting " + certificates_change_group
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-rule.certgen: #@ "upsert after upserting " + certgen_change_group
+
+#! The certgen Job creates the Secrets that don't exist yet, and never updates the existing ones. Besides the certificates,
+#! it creates the `envoy-oidc-hmac` Secret, used by Envoy Gateway for OIDC, so it's always needed, like in the upstream
+#! Helm chart. It runs again when its specification changes, for example at upgrades.
+#! See: https://gateway.envoyproxy.io/docs/install/custom-cert
+#@overlay/match by=certgen_job
+---
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/remove
+    helm.sh/hook:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/update-strategy: fallback-on-replace
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-group: #@ certgen_change_group
 
 #@ if internal.provider == "cert-manager":
 
-#@overlay/match by=is_certgen_resource, expects=6
+#! The certgen Job runs once cert-manager has issued the certificates, so it only creates the `envoy-oidc-hmac` Secret.
+#! cert-manager injects the CA into the webhook configuration, so the Job doesn't patch it, and doesn't need its cluster-wide permissions.
+#@overlay/match by=certgen_job
+---
+metadata:
+  annotations:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-rule.certificates: #@ "upsert after upserting " + certificates_change_group
+spec:
+  template:
+    spec:
+      containers:
+        #@overlay/match by=overlay.index(0)
+        -
+          #@overlay/match missing_ok=True
+          args:
+            - --disable-topology-injector
+
+#@overlay/match by=is_certgen_cluster_rbac, expects=2
 #@overlay/remove
 ---
 
@@ -116,21 +146,5 @@ spec:
     kind: Issuer
     group: cert-manager.io
 #@ end
-
-#@ else:
-
-#! The certgen Job creates the Secrets that don't exist yet, and patches the CA into the webhook configuration.
-#! It runs again when its specification changes, for example at upgrades.
-#@overlay/match by=certgen_job
----
-metadata:
-  #@overlay/match missing_ok=True
-  annotations:
-    #@overlay/remove
-    helm.sh/hook:
-    #@overlay/match missing_ok=True
-    kapp.k14s.io/update-strategy: fallback-on-replace
-    #@overlay/match missing_ok=True
-    kapp.k14s.io/change-group: #@ certificates_change_group
 
 #@ end
